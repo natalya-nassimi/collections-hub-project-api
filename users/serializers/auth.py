@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from django.contrib.auth import password_validation, hashers
+from django.contrib.auth import password_validation, hashers, authenticate
 from ..models import User
+from rest_framework.exceptions import AuthenticationFailed
 
 class SignUpSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
@@ -24,4 +25,20 @@ class SignUpSerializer(serializers.ModelSerializer):
         password_validation.validate_password(password)
         data['password'] = hashers.make_password(password)
 
+        return data
+    
+class SignInSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        user = authenticate(
+            username = data['username'],
+            password = data['password']
+        )
+
+        if not user:
+            raise AuthenticationFailed('Invalid username or password')
+        
+        data['user'] = user
         return data

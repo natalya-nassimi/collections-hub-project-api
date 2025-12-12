@@ -1,12 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework import status
 
-from .models import Collection
+from .models import Collection, Item
 from .serializers.common import CollectionSerializer
-from .serializers.detail import CollectionDetailSerializer
+from .serializers.detail import CollectionDetailSerializer, ItemSerializer
 from .permissions import IsOwnerOrReadOnly
 
 class CollectionListCreateView(APIView):
@@ -51,4 +51,50 @@ class CollectionDetailView(APIView):
         self.check_object_permissions(request, collection)
 
         collection.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class ItemCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, collection_id):
+        try:
+            collection = Collection.objects.get(id=collection_id)
+        except Collection.DoesNotExist:
+            raise NotFound('Collection not found')
+        
+        if collection.user != request.user:
+            raise PermissionDenied('You do not own this collection')
+        
+        serializer = ItemSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(collection=collection)
+        return Response(serializer.data)
+
+class ItemDetailView(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_object(self, pk):
+        try:
+            return Item.objects.get(pk=pk)
+        except Item.DoesNotExist:
+            raise NotFound('Item not found')
+        
+    def put(self, request, pk):
+        item = self.get_object(pk)
+
+        if item.collection.user != request.user:
+            raise PermissionDenied('You do not own this item')
+        
+        serializer = ItemSerializer(item, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    
+    def delete(self, request, pk):
+        item = self.get_object(pk)
+
+        if item.collection.user != request.user:
+            raise PermissionDenied('You do not own this item')
+        
+        item.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

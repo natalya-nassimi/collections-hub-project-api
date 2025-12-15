@@ -73,14 +73,17 @@ class ItemCreateView(APIView):
 class ItemDetailView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    def get_object(self, pk):
+    def get_object(self, collection_id, pk):
         try:
-            return Item.objects.get(pk=pk)
+            return Item.objects.get(
+                pk=pk,
+                collection_id = collection_id
+            )
         except Item.DoesNotExist:
-            raise NotFound('Item not found')
+            raise NotFound('Item not found in this collection')
         
-    def put(self, request, pk):
-        item = self.get_object(pk)
+    def put(self, request, collection_id, pk):
+        item = self.get_object(collection_id, pk)
 
         if item.collection.user != request.user:
             raise PermissionDenied('You do not own this item')
@@ -90,8 +93,8 @@ class ItemDetailView(APIView):
         serializer.save()
         return Response(serializer.data)
     
-    def delete(self, request, pk):
-        item = self.get_object(pk)
+    def delete(self, request, collection_id, pk):
+        item = self.get_object(collection_id, pk)
 
         if item.collection.user != request.user:
             raise PermissionDenied('You do not own this item')

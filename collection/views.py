@@ -7,6 +7,7 @@ from rest_framework import status
 from .models import Collection, Item
 from .serializers.common import CollectionSerializer
 from .serializers.detail import CollectionDetailSerializer, ItemSerializer
+from .serializers.profile import ProfileSerializer
 from .permissions import IsOwnerOrReadOnly
 
 class CollectionListCreateView(APIView):
@@ -101,3 +102,29 @@ class ItemDetailView(APIView):
         
         item.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class MyCollectionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        collections = Collection.objects.filter(user=request.user).order_by('-created_at')
+        serializer = CollectionSerializer(collections, many=True)
+        return Response(serializer.data)
+    
+class MyProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = ProfileSerializer(request.user.profile)
+        return Response(serializer.data)
+    
+    def put(self, request):
+        profile = request.user.profile
+        serializer = ProfileSerializer(
+            profile,
+            data = request.data,
+            partial = True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)

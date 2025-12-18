@@ -8,6 +8,11 @@ class Profile(models.Model):
     )
     bio = models.TextField(blank=True)
 
+    avatar = models.CharField(
+        max_length=50,
+        blank=True
+    )
+
     def __str__(self):
         return f'Profile for {self.user.username}'
     

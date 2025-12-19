@@ -2,11 +2,16 @@ from rest_framework import serializers
 from ..models import Collection, Item
 
 class ItemSerializer(serializers.ModelSerializer):
+    likes_count = serializers.IntegerField(
+            source='likes.count',
+            read_only=True
+    )
     
     def validate(self, data):
         instance = getattr(self, 'instance', None)
         item_type = data.get('item_type') or (instance.item_type if instance else None)
         details = data.get('details') or (instance.details if instance else {})
+
 
         REQUIRED_FIELDS = {
             'book': ['author', 'pages'],
@@ -31,7 +36,8 @@ class ItemSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Item
-        fields = ( 'id', 'title', 'item_type', 'image', 'link', 'details', 'created_at', 'collection' )
+        fields = '__all__'
+        # ( 'id', 'title', 'item_type', 'image', 'link', 'details', 'created_at', 'collection' )
         read_only_fields = ('collection',)
 
 class CollectionDetailSerializer(serializers.ModelSerializer):

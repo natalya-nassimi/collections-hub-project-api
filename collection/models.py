@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class Profile(models.Model):
     user = models.OneToOneField(
@@ -63,3 +64,17 @@ class Item(models.Model):
 
     def __str__(self):
         return f'{self.title} [{self.item_type}]'
+    
+class ItemLike(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+    item = models.ForeignKey(
+        'Item',
+        on_delete=models.CASCADE,
+        related_name='likes'
+    )
+
+    class Meta:
+        unique_together = ('user', 'item')

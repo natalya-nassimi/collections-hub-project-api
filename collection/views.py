@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework import status
 
-from .models import Collection, Item
+from .models import Collection, Item, ItemLike
 from .serializers.common import CollectionSerializer
 from .serializers.detail import CollectionDetailSerializer, ItemSerializer
 from .serializers.profile import ProfileSerializer
@@ -128,3 +128,32 @@ class MyProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+    
+class ItemLikeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, collection_id, pk):
+        try:
+            item = Item.objects.get(pk=pk, collection_id=collection_id)
+        except Item.DoesNotExist:
+            raise NotFound('Item not found')
+        
+        ItemLike.objects.get_or_create(
+            user=request.user,
+            item = item
+        )
+
+        return Response({'likes_count': item.likes.count()})
+    
+    def delete(self, request, collection_id, pk):
+        ItemLike.objects.filter(
+            user=request.user,
+            item_id=pk
+        ).delete()
+
+        try:
+            item = Item.objects.get(pk=pk)
+        except Item.DoesNotExist:
+            raise NotFound('Item not found')
+        
+        return Response({'likes_count': item.likes.count()})
